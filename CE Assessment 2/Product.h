@@ -39,7 +39,31 @@ public:
 		}
 	}
 
-	Review* GetReview(int num) {
+	int ReviewCount() {
+		int count = 0;
+		Review* currentNode = reviewHead;
+
+		while (currentNode != nullptr) {
+			currentNode = currentNode->nextReview;
+			count++;
+		}
+		return count;
+	}
+
+	Review* GetReviewAt(int index) {
+
+		int count = 1;
+		Review* currentNode = reviewHead;
+
+		while (currentNode != nullptr) {
+
+			if (count == index) {
+				return currentNode;
+			}
+
+			currentNode = currentNode->nextReview;
+			count++;
+		}
 		return nullptr;
 	}
 };

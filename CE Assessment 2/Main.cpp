@@ -30,13 +30,16 @@ enum Page {
 	REVIEW,
 	CART,
 	CHECKOUT,
+	SHIPPING,
 };
 
 enum Interactions {
 	DEFAULT,
 	QUANTITY,
 	CONTINUE,
-	BACKTOPRODUCT
+	BACKTOPRODUCT,
+	LIKE,
+	DISLIKE,
 };
 
 Product product(
@@ -47,12 +50,14 @@ Product product(
 	"This is a boot it do boot things it is red the brand is the 1 that is the good 1" // Description
 );
 
-string userName;
+string username;
+string address = "Your Mum's Basement";
+string cardNum = "**** **** **** *321";
+string testNum;
 int quantityInCart;
 
 bool isDescriptionShown = false;
 bool isCallingSupport = false;
-bool hasAdded2Cart = false;
 bool isOutcomeShown = false;
 bool isInteractionShown = true;
 bool isLooping = true;
@@ -76,21 +81,36 @@ void ColouredText(string text, Colour colour) {
 	SetConsoleTextAttribute(h, defaultColour);
 }
 
+void FixedGetline(string& text) {
+	string temp = "";
+	cin >> temp;
+	getline(cin, text);
+	text = temp + text;
+}
+
+bool isCharNum(char c) {
+
+	if (c == '0' || c == '1' || c == '2' || c == '3' || c == '4' || c == '5' || c == '6' || c == '7' || c == '8' || c == '9') {
+		return true;
+	}
+	return false;
+}
+
 Review* LeaveReview() {
 
-	Review* newReview = new Review(userName, 0, 0, 0, "Now", "");
+	Review* newReview = new Review(username, 0, 0, 0, "Now", "");
 
 	while (newReview->score == 0 || newReview->comment == "") {
 		system("CLS");
 
 		ColouredText("/////Webpage////////////////////////\n\n", DARKGREEN);
 		cout << "Welcome to OneStop ";
-		userName != "" ? ColouredText(userName, GREEN) : ColouredText("Guest", RED);
+		username != "" ? ColouredText(username, GREEN) : ColouredText("Guest", RED);
 
 		cout << "\n\nUser: ";
 		ColouredText(newReview->user, GREEN);
 		cout << ", Score: " << newReview->score << ", Date: " << newReview->date << endl;
-		cout << "\tComment: \n";
+		cout << "\tComment: ";
 		ColouredText("\t" + newReview->comment, DARKGRAY);
 
 		ColouredText("\n\n/////Interactions///////////////////\n", DARKGREEN);
@@ -127,7 +147,7 @@ void LoadWebPage(Page& page) {
 	SetColour(GRAY);
 
 	cout << "Welcome to OneStop ";
-	userName != "" ? ColouredText(userName, GREEN) : ColouredText("Guest", RED);
+	username != "" ? ColouredText(username, GREEN) : ColouredText("Guest", RED);
 
 	if (page == SIGNIN) {
 		cout << "\n\nSign in Page\n\n";
@@ -145,7 +165,7 @@ void LoadWebPage(Page& page) {
 
 		cout << "\nReviews ^ \n\n";
 
-		cout << (!hasAdded2Cart ? "[Add to Cart]\n\n" : "[Show in Cart]\n\n");
+		cout << (quantityInCart == 0 ? "[Add to Cart]\n\n" : "[Show in Cart]\n\n");
 
 		// If player has called Suport display text showing what the suport is saying should change depending on page
 		if (isCallingSupport) {
@@ -159,7 +179,7 @@ void LoadWebPage(Page& page) {
 
 			cout << ". \nFor more Info about the product you can ";
 			ColouredText("[Look at the Description]", WHITE);
-			cout << " to find the specs.Still not sure \nif you'll like it you can ";
+			cout << " to find the specs. Still not sure \nif you'll like it you can ";
 
 
 			ColouredText("[Look at the Reviews]", WHITE);
@@ -189,7 +209,11 @@ void LoadWebPage(Page& page) {
 			cout << ", Score: " << review->score << ", Date: " << review->date << endl;
 			cout << "\tComment: \n";
 			ColouredText("\t" + review->comment, DARKGRAY);
-			cout << "\n\tLikes: " << review->likes << ", Dislikes: " << review->dislikes << endl << endl;
+			cout << "\n\tLikes: ";
+			ColouredText(to_string(review->likes + ((review->hasLiked) ? 1 : 0)), ((review->hasLiked) ? DARKGREEN : GRAY));
+			cout << ", Dislikes: ";
+			ColouredText(to_string(review->dislikes + ((review->hasDisliked) ? 1 : 0)), ((review->hasDisliked) ? DARKRED : GRAY));
+			cout << endl << endl;
 
 			num++;
 			review = review->nextReview;
@@ -229,7 +253,15 @@ void LoadWebPage(Page& page) {
 			ColouredText("/////Support////////////////////////\n\n", DARKGREEN);
 			SetColour(DARKGRAY);
 
-			cout << "Yo U got into the  cart gg\n\n";
+			cout << "Welcome to the cart! If you need to you can always go "; 
+			ColouredText("[Back to Product]", WHITE);
+			cout << " for more info. \nOnce you're happy ";
+			ColouredText("[Proceed to Checkout]", WHITE);
+			cout << " to finalise the purchase, but you still can \n";
+			ColouredText("[Adjust Quantity]", WHITE);
+			cout << " and ";
+			ColouredText("[Change Shipping]", WHITE);
+			cout << " if you would like them to change.\n\n";
 		}
 
 		SetColour(GRAY);
@@ -238,33 +270,81 @@ void LoadWebPage(Page& page) {
 
 		ColouredText("\n\nThank you for shoping with us at OneStop \nPlease confirm your information is correct before finalising your order\n\n", DARKGRAY);
 		ColouredText("User: ", WHITE);
-		ColouredText(userName, GREEN);
+		ColouredText(username, GREEN);
 		cout << "\n   Product(s): \t" << product.name << " (x" << quantityInCart << ")" << endl;
 		cout << "   Total Cost: \t$" << product.price * quantityInCart + product.shipping << " (Shipping Included)\n";
-		cout << "   Shipping: \t$" << product.shipping << ", Default Package \n";
-		cout << "   Address: \tYour Mums Basement\n";
-		cout << "   ETA: \t20-25 Buisness Days\n";
-		cout << "   Card Num: \t**** **** **** *321\n\n";
+
+		cout << "   Shipping: \t$" << product.shipping;
+		if (product.shipping == 20)
+			cout << ", Default Delivery \n";
+		else if (product.shipping == 40)
+			cout << ", Speedy Delivery \n";
+		else if (product.shipping == 60)
+			cout << ", Premium Delivery \n";
+		else
+			cout << ", Instant Delivery \n";
+
+		cout << "   Address: \t" << address << endl;
+
+		if (product.shipping == 20)
+			cout << "   ETA: \t20-25 Buisness Days\n"; 
+		else if (product.shipping == 40)
+			cout << "   ETA: \t10-15 Buisness Days\n";
+		else if (product.shipping == 60)
+			cout << "   ETA: \t3-5 Buisness Days\n";
+		else
+			cout << "   ETA: \t0 Buisness Days u already have it lol\n";
+
+		cout << "   Card Num: \t" << cardNum << "\n\n";
 
 		// If player has called Suport display text showing what the suport is saying should change depending on page
 		if (isCallingSupport) {
 			ColouredText("/////Support////////////////////////\n\n", DARKGREEN);
 			SetColour(DARKGRAY);
 
-			cout << "Yo U got into the Checkout gg\n\n";
+			cout << "Finally we can ";
+			ColouredText("[Confirm Purchase]", WHITE);
+			cout << " and we're done, if you don’t need to ";
+			ColouredText("[Head Back to Cart]", WHITE);
+			cout << " first. \nAnd remember you can ";
+			ColouredText("[Change Shipping Address]", WHITE);
+			cout << " and ";
+			ColouredText("[Change Card Number]", WHITE);
+			cout << " if they have changed \nsince last time (You can put spaces if necessary).\n\n";
 
 			SetColour(GRAY);
 		}
 	}
 	else if (page == LOGIN) {
-		cout << "\n\nLog in Page\n   Username: " << userName << "\n   Password: " << (userName != "" ? "*******" : "") << endl;
+		cout << "\n\nLog in Page\n   Username: " << username << "\n   Password: " << (username != "" ? "*******" : "") << endl;
+	}
+	else if (page == SHIPPING) {
+		
+		cout << "\n\nShipping options";
+
+		ColouredText("\n\n1) ", PURPLE);
+		cout << "Standard Delivery: \n\tCost: $20 \n\tETA: 20-25 Business Days\n\n";
+		ColouredText("2) ", PURPLE);
+		cout << "Speedy Delivery: \n\tCost: $40 \n\tETA: 10-15 Business Days\n\n";
+		ColouredText("3) ", PURPLE);
+		cout << "Premium Delivery: \n\tCost: $60 \n\tETA: 3-5 Business Days\n\n";
+
+		// If player has called Suport display text showing what the suport is saying should change depending on page
+		if (isCallingSupport) {
+			ColouredText("/////Support////////////////////////\n\n", DARKGREEN);
+			SetColour(DARKGRAY);
+
+			cout << "There are 3 delivery options with pricing increasing in return for faster deliveries. \n\n";
+
+			SetColour(GRAY);
+		}
 	}
 	else {
 		cout << "Oops there was a dun goof ur stuck here my b" << endl;
 	}
 }
 
-void LoadOutcome(Page& page, Interactions& interaction, int& choice) {
+void LoadOutcome(Page& page, Interactions& interaction, long long& choice) {
 
 	if (!isOutcomeShown) {
 		isInteractionShown = true;
@@ -312,7 +392,7 @@ void LoadOutcome(Page& page, Interactions& interaction, int& choice) {
 				break;
 
 			case 4:
-				if (!hasAdded2Cart) {
+				if (quantityInCart == 0) {
 					cout << "Adding " << product.name << " to the cart\n\n";
 					interaction = QUANTITY;
 					isInteractionShown = true;
@@ -355,7 +435,6 @@ void LoadOutcome(Page& page, Interactions& interaction, int& choice) {
 			else {
 				cout << choice << " " << product.name << " was added to your cart " << endl;
 				quantityInCart = choice;
-				hasAdded2Cart = true;
 				interaction = BACKTOPRODUCT;
 			}
 			system("pause");
@@ -363,7 +442,6 @@ void LoadOutcome(Page& page, Interactions& interaction, int& choice) {
 		else if (interaction == CONTINUE) {
 			cout << "Successfully added " << choice << " to your cart\n\n";
 
-			hasAdded2Cart = true;
 			//isInteractionShown = true;
 			system("pause");
 		}
@@ -395,132 +473,333 @@ void LoadOutcome(Page& page, Interactions& interaction, int& choice) {
 	}
 	else if (page == REVIEW) {
 
-		if (userName == "") {
-			page = LOGIN;
-			savedPage = REVIEW;
-		}
+		if (interaction == DEFAULT) {
 
-		switch (choice)
-		{
-		case 1:
-			if (userName == "") {
+
+			if (username == "") {
 				page = LOGIN;
 				savedPage = REVIEW;
-				cout << "Before you can complete this action you must be signed in\n";
+			}
+
+			switch (choice)
+			{
+			case 1:
+				if (username == "") {
+					page = LOGIN;
+					savedPage = REVIEW;
+					cout << "Before you can complete this action you must be signed in\n";
+					system("pause");
+				}
+				else {
+					cout << "Leave Review\n";
+					product.AddReview(LeaveReview());
+				}
+				break;
+			case 2:
+				if (username == "") {
+					page = LOGIN;
+					savedPage = REVIEW;
+					cout << "Before you can complete this action you must be signed in\n";
+					system("pause");
+				}
+				else {
+					interaction = LIKE;
+				}
+				break;
+			case 3:
+				if (username == "") {
+					page = LOGIN;
+					savedPage = REVIEW;
+					cout << "Before you can complete this action you must be signed in\n";
+				}
+				else {
+					interaction = DISLIKE;
+				}
+				break;
+
+			case 4:
+				cout << "You head back to the product page\n";
+				page = PRODUCT;
 				system("pause");
-			}
-			else {
-				cout << "Leave Review\n";
-				product.AddReview(LeaveReview());
-			}
-			break;
-		case 2:
-			if (userName == "") {
-				page = LOGIN;
-				savedPage = REVIEW;
-				cout << "Before you can complete this action you must be signed in\n";
-			}
-			else {
-				cout << "Like Review\n";
-			}
-			system("pause");
-			break;
-		case 3:
-			if (userName == "") {
-				page = LOGIN;
-				savedPage = REVIEW;
-				cout << "Before you can complete this action you must be signed in\n";
-			}
-			else {
-				cout << "Dislike Review\n";
-			}
-			system("pause");
-			break;
+				break;
 
-		case 4:
-			cout << "You head back to the product page\n";
-			page = PRODUCT;
-			system("pause");
-			break;
+			case 5:
+				cout << (isCallingSupport ? "You have ended" : "You have called") << " the customer support\n";
+				isCallingSupport = !isCallingSupport;
+				system("pause");
+				break;
 
-		case 5:
-			cout << (isCallingSupport ? "You have ended" : "You have called") << " the customer support\n";
-			isCallingSupport = !isCallingSupport;
-			system("pause");
-			break;
+			default:
+				cout << "You didnt know what to do so you curled up in a ball and cried in a corner\n";
+				cout << "Please put in a valid choice\n";
+				system("pause");
+				break;
+			}
+		}
+		else if (interaction == LIKE) {
 
-		default:
-			cout << "You didnt know what to do so you curled up in a ball and cried in a corner\n";
-			cout << "Please put in a valid choice\n";
+			Review* review = product.GetReviewAt(choice);
+
+			if (product.ReviewCount() == 0) {
+				cout << "Apparently theres no reviews to like just your luck\n";
+			}
+			else if (choice > product.ReviewCount() || choice < 1) {
+				cout << "Out of scope pick a number on the list\n";
+			}
+			else if (review != nullptr)	{
+
+				if (username == review->user) {
+					if (review->hasLiked)
+						cout << "You have unliked your own review... It wasn't that bad\n";
+					else
+						cout << "You have liked your own review... Self centered much\n";
+				}
+				else {
+					if (review->hasLiked) {
+
+						cout << "You have unliked ";
+					}
+					else
+						cout << "You have liked ";
+
+					ColouredText(review->user, GREEN);
+					cout << "'s review\n";
+				}
+
+				review->hasLiked = !review->hasLiked;
+				review->hasDisliked = false;
+				interaction = DEFAULT;
+			}		
+			else if (review == nullptr) {
+				ColouredText("NULL" + to_string(choice), PUKE);
+			}
+
 			system("pause");
-			break;
+		}
+		else if (interaction == DISLIKE) {
+
+			Review* review = product.GetReviewAt(choice);
+
+			if (product.ReviewCount() == 0) {
+				cout << "Apparently theres no reviews to like just your luck\n";
+			}
+			else if (choice > product.ReviewCount() || choice < 1) {
+				cout << "Out of scope pick a number on the list\n";
+			}
+			else if (review != nullptr) {
+
+				if (username == review->user) {
+					if (review->hasDisliked)
+						cout << "You have undisliked your own review... That was a mouth full\n";
+					else
+						cout << "You have disliked your own review... At least you know your place\n";
+				}
+				else {
+					if (review->hasDisliked) {
+
+						cout << "You removed your dislike ";
+					}
+					else
+						cout << "You have disliked ";
+
+					ColouredText(review->user, GREEN);
+					cout << "'s review\n";
+				}
+
+				review->hasDisliked = !review->hasDisliked;
+				review->hasLiked = false;
+				interaction = DEFAULT;
+			}
+			else if (review == nullptr) {
+				ColouredText("NULL" + to_string(choice), PUKE);
+			}
+
+			system("pause");
 		}
 	}
 	else if (page == CART) {
-
-		switch (choice)
-		{
-		case 1:
-			cout << "You went back to Product\n";
-			page = PRODUCT;
-			break;
-
-		case 2:
-			if (userName != "") {
-				cout << "You headed to the checkout\n";
-				page = CHECKOUT;
+		if (interaction == DEFAULT) {
+			switch (choice)
+			{
+			case 1:
+				cout << "You went back to Product\n";
+				page = PRODUCT;
+				system("pause");
+				break;
+			case 2:
+				if (username != "") {
+					cout << "You headed to the checkout\n";
+					page = CHECKOUT;
+				}
+				else {
+					cout << "Before you can Checkout you need to be signed in\n";
+					page = LOGIN;
+					savedPage = CHECKOUT;
+				}
+				system("pause");
+				break;
+			case 3:
+				cout << "You Attempt to change the Quantity\n";
+				interaction = QUANTITY;
+				isInteractionShown = true;
+				break;
+			case 4:
+				page = SHIPPING;
+				break;
+			case 5:
+				cout << (isCallingSupport ? "You have ended" : "You have called") << " the customer support\n";
+				isCallingSupport = !isCallingSupport;
+				system("pause");
+				break;
+			default:
+				cout << "You didnt know what to do so you curled up in a ball and cried in a corner\n";
+				cout << "Please put in a valid choice\n";
+				system("pause");
+				break;
+			}
+		}
+		else if (interaction == QUANTITY) {
+			if (choice > product.stockCount) {
+				cout << "Sorry there aren't enough of " << product.name << " in stock as there's only " << product.stockCount << " left\n";
+			}
+			else if (choice < 0) {
+				cout << "Sorry you can't buy negative of a product\n";
+			}
+			else if (choice == 0) {
+				cout << "You remove " << product.name << " from your cart\n";
+				cout << "I hope your happy with yourself\n";
+				
+				quantityInCart = choice;
+				page = PRODUCT;
+				interaction = DEFAULT;
+			}
+			else if (choice == quantityInCart) {
+				cout << "Thats just what it was before u ok there bud???\n";
+				interaction = DEFAULT;
 			}
 			else {
-				cout << "Before you can Checkout you need to be signed in\n";
-				page = LOGIN;
-				savedPage = CHECKOUT;
+				cout << "The quantity of " << product.name << " has been updated to " << choice << endl;
+				quantityInCart = choice;
+				interaction = DEFAULT;
 			}
-			break;
-		case 3:
-			cout << (isCallingSupport ? "You have ended" : "You have called") << " the customer support\n";
-			isCallingSupport = !isCallingSupport;
-			break;
-
-		default:
-			cout << "You didnt know what to do so you curled up in a ball and cried in a corner\n";
-			cout << "Please put in a valid choice\n";
-			break;
+			system("pause");
 		}
-
-		system("pause");
 	}
 	else if (page == CHECKOUT) {
+		if (interaction == DEFAULT) {
 
-		switch (choice) {
-		case 1:
-			cout << "Confirm Purchase \nCongratulations on your purchase, come back soon!\n";
-			interaction = CONTINUE;
-			isInteractionShown = true;
-			return;
-		case 2:
-			cout << " Head Back to Cart\n";
-			page = CART;
-			break;
-		case 3:
-			cout << (isCallingSupport ? " End" : " Call") << " Customer Support\n";
-			isCallingSupport = !isCallingSupport;
-			break;
-		default:
-			cout << "You didnt know what to do so you curled up in a ball and cried in a corner\n";
-			cout << "Please put in a valid choice\n";
-			break;
+			switch (choice) {
+			case 1:
+				cout << "Confirm Purchase \nCongratulations on your purchase, come back soon!\n";
+				interaction = CONTINUE;
+				system("pause");
+				return;
+			case 2:
+				cout << " Head Back to Cart\n";
+				page = CART;
+				system("pause");
+				break;
+			case 3:
+				cout << "Addresss : ";
+				FixedGetline(address);
+				break;
+			case 4:
+				interaction = QUANTITY;
+				break;
+			case 5:
+				cout << (isCallingSupport ? " End" : " Call") << " Customer Support\n";
+				isCallingSupport = !isCallingSupport;
+				system("pause");
+				break;
+			default:
+				cout << "You didnt know what to do so you curled up in a ball and cried in a corner\n";
+				cout << "Please put in a valid choice\n";
+				system("pause");
+				break;
+			}
 		}
+		else if (interaction == QUANTITY) {
 
-		system("pause");
+			int length = 0;
+			string censoredCardNum;
+
+			//char* array = new char[testNum.length()];
+
+			for (int i = 0; i < testNum.length(); i++) {
+				
+
+				if (!isCharNum(testNum[i]) && testNum[i] != ' ') {
+
+					cout << "Cant include letters or symbols\n";
+					return;
+				}
+				else if (testNum[i] != ' ') {
+					length++;
+					if (i < testNum.length() - 3)
+						censoredCardNum += "*";
+					else
+						censoredCardNum += testNum[i];
+				}
+				else if (testNum[i] == ' ') {
+					censoredCardNum += " ";
+				}
+			}
+
+			if (length > 20) {
+				cout << "Number too Long\n";
+				system("pause");
+			}
+			else if (length < 12) {
+
+				cout << "Number too Short\n";
+				system("pause");
+			}
+			else {
+
+				//testNum = array[length - 3] + array[length - 2] + array[length - 1];
+
+				cout << " Changed Card Num to: " << testNum << endl;
+				cardNum = censoredCardNum;
+				interaction = DEFAULT;
+				system("pause");
+			}
+
+		}
 	}
 	else if (page == LOGIN) {
 		cout << "Thank you for signing in :D \nWe will now return to our reguarly scheduled program\n";
 		page = savedPage;
 		system("pause");
 	}
+	else if (page == SHIPPING) {
+
+		switch (choice)
+		{
+		case 1:
+			cout << "You choose the Standard Delivery\n";
+			product.shipping = 20;
+			page = CART;
+			break;
+		case 2:
+			cout << "You choose the Speedy Delivery\n";
+			product.shipping = 40;
+			page = CART;
+			break;
+		case 3:
+			cout << "You choose the Premium Delivery\n";
+			product.shipping = 60;
+			page = CART;
+			break;
+		default:
+			cout << "You didnt know what to do so you curled up in a ball and cried in a corner\n";
+			cout << "Please put in a valid choice\n";
+			break;
+		}
+		system("pause");
+	}
 }
 
-void LoadInteractions(Page& page, Interactions& interaction, int& choice) {
+void LoadInteractions(Page& page, Interactions& interaction, long long& choice) {
 
 	if (!isInteractionShown) {
 
@@ -560,7 +839,7 @@ void LoadInteractions(Page& page, Interactions& interaction, int& choice) {
 			cout << "Look at Reviews\n";
 
 			ColouredText("4) ", PURPLE);
-			cout << (hasAdded2Cart ? "Show in Cart\n" : "Add to the cart\n");
+			cout << (quantityInCart == 0 ? "Add to Cart\n" : "Show in Cart\n");
 
 			ColouredText("5)", PURPLE);
 			cout << (isCallingSupport ? " End" : " Call") << " Customer Support\n";
@@ -588,30 +867,49 @@ void LoadInteractions(Page& page, Interactions& interaction, int& choice) {
 
 	}
 	else if (page == REVIEW) {
-		ColouredText("1) ", PURPLE);
-		cout << "Leave Review\n";
-		ColouredText("2) ", PURPLE);
-		cout << "Like Review\n";
-		ColouredText("3) ", PURPLE);
-		cout << "Dislike Review\n";
-		ColouredText("4) ", PURPLE);
-		cout << "Go Back\n";
-		ColouredText("5)", PURPLE);
-		cout << (isCallingSupport ? " End" : " Call") << " Customer Support\n";
+		if (interaction == DEFAULT) {
+			ColouredText("1) ", PURPLE);
+			cout << "Leave Review\n";
+			ColouredText("2) ", PURPLE);
+			cout << "Like Review\n";
+			ColouredText("3) ", PURPLE);
+			cout << "Dislike Review\n";
+			ColouredText("4) ", PURPLE);
+			cout << "Go Back\n";
+			ColouredText("5)", PURPLE);
+			cout << (isCallingSupport ? " End" : " Call") << " Customer Support\n";
 
-		SetColour(GRAY);
-		cout << "What do (1-4): ";
+			SetColour(GRAY);
+			cout << "What do (1-5): ";
+		}
+		else if (interaction == LIKE) {
+			cout << "Pick a review to like (1-" << product.ReviewCount() << "): ";
+		}
+		else if (interaction == DISLIKE) {
+			cout << "Pick a review to dislike (1-" << product.ReviewCount() << "): ";
+		}
 	}
 	else if (page == CART) {
-		ColouredText("1)", PURPLE);
-		cout << " Back to Product\n";
-		ColouredText("2)", PURPLE);
-		cout << " Proceed to Checkout\n";
-		ColouredText("3)", PURPLE);
-		cout << (isCallingSupport ? " End" : " Call") << " Customer Support\n";
+		if (interaction == DEFAULT) {
+			ColouredText("1)", PURPLE);
+			cout << " Back to Product\n";
+			ColouredText("2)", PURPLE);
+			cout << " Proceed to Checkout\n";
+			ColouredText("3)", PURPLE);
+			cout << " Adjust Quantity\n";
+			ColouredText("4)", PURPLE);
+			cout << " Change Shipping\n";
+			ColouredText("5)", PURPLE);
+			cout << (isCallingSupport ? " End" : " Call") << " Customer Support\n";
 
-		SetColour(GRAY);
-		cout << "What do (1-3): ";
+			SetColour(GRAY);
+			cout << "What do (1-5): ";
+		}
+		else if (interaction == QUANTITY){
+
+			SetColour(GRAY);
+			cout << "How much: ";
+		}
 	}
 	else if (page == CHECKOUT) {
 
@@ -621,21 +919,42 @@ void LoadInteractions(Page& page, Interactions& interaction, int& choice) {
 			ColouredText("2)", PURPLE);
 			cout << " Head Back to Cart\n";
 			ColouredText("3)", PURPLE);
+			cout << " Change Shipping Address\n";
+			ColouredText("4)", PURPLE);
+			cout << " Change Card Number\n";
+			ColouredText("5)", PURPLE);
 			cout << (isCallingSupport ? " End" : " Call") << " Customer Support\n";
 
 			SetColour(GRAY);
-			cout << "What do (1-3): ";
+			cout << "What do (1-5): ";
 		}
 		else if (interaction == CONTINUE) {
 			cout << "Leave Site\n";
 			isLooping = false;
 			return;
 		}
+		// This actually changes the card nu,
+		else if (interaction == QUANTITY) {
+
+			cout << "Changing the Card Number \nMake sure it's a between 12 and 20 digit \nNum: ";
+			 
+			FixedGetline(testNum);
+			return;
+		}
 	}
 	else if (page == LOGIN) {
 		cout << "UserName: ";
-		cin >> userName;
+
+		string thisIsWeirdIdkWhatsCausingItButThisFixesIt;
+		cin >> thisIsWeirdIdkWhatsCausingItButThisFixesIt;
+		getline(cin, username);
+		username = thisIsWeirdIdkWhatsCausingItButThisFixesIt + username;
 		return;
+	}
+	else if (page == SHIPPING) {
+
+		SetColour(GRAY);
+		cout << "Choose Delivery (1-3): ";
 	}
 
 	cin >> choice;
@@ -645,7 +964,7 @@ void main() {
 
 	Page page = SIGNIN;
 	Interactions interactions = DEFAULT;
-	int choice = 0; // I should probably come up with a better name for this
+	long long choice = 0; // I should probably come up with a better name for this
 
 	product.AddReview(new Review("Yo Mamma", 4.5f, 3, 1, "2 Month ago", "Boot was good Boot was Red"));
 	product.AddReview(new Review("Yo Dadda", 1.0f, 0, 4, "1 Month ago", "Boot was Red, I don't like Red, I don't like Boot"));
@@ -654,6 +973,19 @@ void main() {
 
 	while (isLooping) {
 		system("CLS"); // Clears the Screem
+
+		int test = stoi("10");
+		string test2;
+		test2[0] = '1';
+		test = stoi(test2);
+
+		try {
+			//test = stoi("a");
+			throw 5;
+		}
+		catch (int x) {
+
+		}
 
 		// Loads Webpage and Interactions
 		LoadWebPage(page);

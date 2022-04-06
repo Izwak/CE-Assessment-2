@@ -15,7 +15,7 @@ public:
 	string comment;
 
 	bool hasLiked = false;
-	bool hasDislikes = false;
+	bool hasDisliked = false;
 
 	Review* nextReview = nullptr;
 
